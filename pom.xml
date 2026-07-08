@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.hzhilong</groupId>
+    <artifactId>bilibili-backup</artifactId>
+    <name>哔哩哔哩账号备份</name>
+    <description>一键对B站账号进行数据备份和还原，方便账号数据迁移/快速转生(哔哩哔哩 bilibili)</description>
+    <version>2.1.6</version>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <app.author>hzhilong</app.author>
+        <app.email>hzhilong777@outlook.com</app.email>
+        <app.url>https://github.com/hzhilong/bilibili-backup</app.url>
+        <app.mainClass>io.github.hzhilong.bilibili.backup.App</app.mainClass>
+        <app.ico>assets/windows/app.ico</app.ico>
+
+        <flatlaf.version>3.5.2</flatlaf.version>
+        <ybgnb-base.version>0.0.2</ybgnb-base.version>
+        <ybgnb-base-app.version>0.0.7</ybgnb-base-app.version>
+        <javapackager.jrePath>D:\Java\jdk1.8.0_201\jre</javapackager.jrePath>
+        <javapackager.jrePathX86>D:\Java\jdk1.8.0_201_x86\jre</javapackager.jrePathX86>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>2.0.16</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.google.zxing/core -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.hzhilong</groupId>
+            <artifactId>ybgnb-base</artifactId>
+            <version>${ybgnb-base.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.hzhilong</groupId>
+            <artifactId>ybgnb-base-app</artifactId>
+            <version>${ybgnb-base-app.version}</version>
+        </dependency>
+        <!-- apache 集合工具类 -->
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>4.29.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>4.29.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>2.3.34</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.ftl</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <!--初版 打包bat命令和环境 -->
+            <!--<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>${app.mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        &lt;!&ndash; 绑定到package生命周期 &ndash;&gt;
+                        <phase>package</phase>
+                        <goals>
+                            &lt;!&ndash; 只运行一次 &ndash;&gt;
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <tarLongFileMode>gnu</tarLongFileMode>
+                            <descriptors>
+                                &lt;!&ndash; 配置描述文件路径，一般使用相对目录即可 &ndash;&gt;
+                                <descriptor>assets/assembly.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>target</outputDirectory>
+                            &lt;!&ndash; 该标签默认为true，指定为false后包名将不会自动带上描述文件的id &ndash;&gt;
+                            <appendAssemblyId>true</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
+            <!-- https://github.com/fvarrui/JavaPackager -->
+            <plugin>
+                <groupId>io.github.fvarrui</groupId>
+                <artifactId>javapackager</artifactId>
+                <version>1.7.6</version>
+                <executions>
+                    <execution>
+                        <id>bundle-jre</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>${app.mainClass}</mainClass>
+                            <displayName>${project.name}</displayName>
+                            <name>${project.artifactId}</name>
+                            <bundleJre>true</bundleJre>
+                            <jrePath>${javapackager.jrePath}</jrePath>
+                            <generateInstaller>true</generateInstaller>
+                            <platform>windows</platform>
+
+                            <url>${app.url}</url>
+                            <organizationUrl>${app.url}</organizationUrl>
+                            <organizationName>${app.author}</organizationName>
+                            <organizationEmail>${app.email}</organizationEmail>
+
+                            <winConfig>
+                                <exeCreationTool>winrun4j</exeCreationTool>
+                                <icoFile>${app.ico}</icoFile>
+                                <!-- https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation -->
+                                <setupLanguages>
+                                    <china>compiler:Languages\ChineseSimplified.isl</china>
+                                    <english>compiler:Default.isl</english>
+                                </setupLanguages>
+                                <generateMsi>false</generateMsi>
+                                <disableDirPage>false</disableDirPage>
+                                <disableFinishedPage>false</disableFinishedPage>
+                                <disableRunAfterInstall>false</disableRunAfterInstall>
+                            </winConfig>
+                        </configuration>
+                    </execution>
+                   <!-- <execution>
+                        <id>bundle-jre-x86</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <configuration>
+                            <arch>x86</arch>
+                            <mainClass>${app.mainClass}</mainClass>
+                            <displayName>${project.name}</displayName>
+                            <name>${project.artifactId}_x86</name>
+                            <bundleJre>true</bundleJre>
+                            <jrePath>${javapackager.jrePathX86}</jrePath>
+                            <generateInstaller>true</generateInstaller>
+                            <platform>windows</platform>
+
+                            <url>${app.url}</url>
+                            <organizationUrl>${app.url}</organizationUrl>
+                            <organizationName>${app.author}</organizationName>
+                            <organizationEmail>${app.email}</organizationEmail>
+
+                            <winConfig>
+                                <exeCreationTool>winrun4j</exeCreationTool>
+                                <icoFile>${app.ico}</icoFile>
+                                &lt;!&ndash; https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation &ndash;&gt;
+                                <setupLanguages>
+                                    <china>compiler:Languages\ChineseSimplified.isl</china>
+                                    <english>compiler:Default.isl</english>
+                                </setupLanguages>
+                                <generateMsi>false</generateMsi>
+                                <disableDirPage>false</disableDirPage>
+                                <disableFinishedPage>false</disableFinishedPage>
+                                <disableRunAfterInstall>false</disableRunAfterInstall>
+                            </winConfig>
+                        </configuration>
+                    </execution>-->
+                    <execution>
+                        <id>without-jre</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>${app.mainClass}</mainClass>
+                            <displayName>${project.name}</displayName>
+                            <name>${project.artifactId}-without-jre</name>
+                            <bundleJre>false</bundleJre>
+                            <jreMinVersion>8</jreMinVersion>
+                            <generateInstaller>true</generateInstaller>
+                            <platform>windows</platform>
+
+                            <url>${app.url}</url>
+                            <organizationUrl>${app.url}</organizationUrl>
+                            <organizationName>${app.author}</organizationName>
+                            <organizationEmail>${app.email}</organizationEmail>
+
+                            <winConfig>
+                                <exeCreationTool>winrun4j</exeCreationTool>
+                                <icoFile>${app.ico}</icoFile>
+                                <!-- https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation -->
+                                <setupLanguages>
+                                    <china>compiler:Languages\ChineseSimplified.isl</china>
+                                    <english>compiler:Default.isl</english>
+                                </setupLanguages>
+                                <generateMsi>false</generateMsi>
+                                <disableDirPage>false</disableDirPage>
+                                <disableFinishedPage>false</disableFinishedPage>
+                                <disableRunAfterInstall>false</disableRunAfterInstall>
+                            </winConfig>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

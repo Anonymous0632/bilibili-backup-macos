@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import path from 'node:path'
 import type { Configuration } from 'electron-builder'
 
 const winIcon = 'public/favicon.ico'
@@ -72,6 +74,15 @@ export default (): Configuration => {
     dmg: {
       artifactName: `${packageJson.productName}_${packageJson.version}_${'${arch}'}.${'${ext}'}`,
       sign: false,
+    },
+    afterPack: async (context) => {
+      if (context.electronPlatformName !== 'darwin') return
+
+      const appPath = path.join(context.appOutDir, `${packageJson.productName}.app`)
+      if (!existsSync(appPath)) return
+
+      execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' })
+      execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' })
     },
     // NSIS 安装程序配置
     nsis: {

@@ -7,6 +7,7 @@ import { windowManager } from '@/main/window/window-manager.js'
 import { appPath } from '@/main/common/app-path.js'
 import { mainEnv } from '@/main/common/main-env.js'
 import { mainLogger } from '@/main/common/main-logger.js'
+import { installElectronFetch } from '@/main/utils/electron-fetch.js'
 
 if (mainEnv.DEV) {
   // Source Map 支持库 => 开发环境打印日志时输出源码路径和行号
@@ -64,6 +65,7 @@ const createWindow = async () => {
 // 这段程序将会在 Electron 结束初始化和创建浏览器窗口的时候调用
 // 部分 API 在 ready 事件触发后才能使用。
 app.whenReady().then(() => {
+  installElectronFetch()
   if (mainEnv.DEV) {
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
       const url = details.url

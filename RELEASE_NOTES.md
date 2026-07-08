@@ -37,6 +37,7 @@ This release adds the newer `hzhilong/bilitoolkit` Electron/Vue app as an integr
 - Generate a Retina `.icns` icon from the SVG source and enable Electron high-DPI support.
 - Increase the default window size to 1280x820 for MacBook displays.
 - Fix local plugin loading on macOS by using `webContents.loadFile()` for plugin `dist/index.html` paths.
+- Route Bili API requests through Electron's network stack on macOS so backup, restore, and login flows trust the system certificate chain instead of Node's bundled CA list.
 - Keep local app data under `~/Library/Application Support/BiliToolkit`.
 - Disable local-build update checks unless explicitly enabled with `APP_ENABLE_AUTO_UPDATE=true`.
 
@@ -53,6 +54,7 @@ This release adds the newer `hzhilong/bilitoolkit` Electron/Vue app as an integr
 - Verified `BiliToolkit_0.0.4_arm64.dmg` with `hdiutil verify`.
 - Verified app launch on macOS 27.0.
 - Verified installed plugin count, UI plugin loading for 哔哩备份姬 / 图片下载 / 弹幕工具箱, and task plugin configuration view for 速升姬.
+- Verified 哔哩备份姬 backup and restore views open without new `UNABLE_TO_VERIFY_LEAF_SIGNATURE` / `fetch failed` errors; current local account state is logged out, so destructive restore actions were not executed.
 
 ## Upstream
 

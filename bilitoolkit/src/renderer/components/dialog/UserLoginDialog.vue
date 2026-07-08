@@ -2,8 +2,8 @@
 import { ref, watch } from 'vue'
 import { useUserStore } from '@/renderer/stores/user.js'
 import type { UserInfo } from '@ybgnb/bili-api'
-import { biliClient } from '@/renderer/api/bili-client.js'
-import { toolkitApi } from '@/renderer/api/toolkit-api.js'
+import { createHostBiliClient } from '@/renderer/api/bili-client.js'
+import { getErrorMessage } from '@ybgnb/utils'
 import QRCode from 'qrcode'
 
 const visible = defineModel<boolean>({ required: true })
@@ -17,6 +17,24 @@ const qrCodeImg = ref('')
 const loginResult = ref('')
 let abortController = new AbortController()
 
+const sleep = async (ms: number, signal: AbortSignal) => {
+  await new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason)
+      return
+    }
+    const timer = window.setTimeout(resolve, ms)
+    signal.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timer)
+        reject(signal.reason)
+      },
+      { once: true },
+    )
+  })
+}
+
 const handleCancel = () => {
   abortController.abort('取消登录')
   emit('cancel')
@@ -24,33 +42,67 @@ const handleCancel = () => {
 }
 
 const startLogin = async () => {
-  const context = await biliClient.user.loginWithQRCode(
-    {
-      async cookieProvider(): Promise<string[]> {
-        return await toolkitApi.user.getCurrUserCookie()
-      },
-      async onQRCodeReceived(qrcodeUrl: string): Promise<void> {
-        qrCodeImg.value = await QRCode.toDataURL(qrcodeUrl)
-      },
-      onStatusChange(msg: string): void {
-        loginResult.value = msg
-      },
-    },
-    {
-      signal: abortController.signal,
-    },
-  )
-  const userInfo = await biliClient.user.getMyInfo()
-  const stat = await biliClient.relation.getStat(userInfo.mid)
-  // 官方接口两个都是粉丝数...
-  userInfo.follower = stat.follower
-  userInfo.following = stat.following
-  await useUserStore().loginUser({
-    ...userInfo,
-    userCookie: context.userCookie,
-  })
-  emit('loginSuccess', userInfo)
-  visible.value = false
+  const signal = abortController.signal
+  const biliClient = await createHostBiliClient()
+  const timeoutAt = Date.now() + 180 * 1000
+
+  try {
+    while (!signal.aborted && Date.now() < timeoutAt) {
+      loginResult.value = '正在获取登录二维码...'
+      const qrcode = await biliClient.user.getLoginQRCode({ signal })
+      if (!qrcode?.url || !qrcode?.qrcode_key) throw new Error('未能获取有效的二维码数据')
+
+      qrCodeImg.value = await QRCode.toDataURL(qrcode.url)
+      loginResult.value = '请使用手机 App 扫码登录...'
+      await sleep(2000, signal)
+
+      let refreshQRCode = false
+      while (!signal.aborted && !refreshQRCode && Date.now() < timeoutAt) {
+        const result = await biliClient.user.getQRCodeLoginResult(qrcode.qrcode_key, { signal })
+        loginResult.value = result.message
+
+        if (result.code === 0) {
+          loginResult.value = '扫码成功，正在同步用户信息...'
+          const context = await biliClient.user.initLoginSession(result.setCookie, true, { signal })
+          const userInfo = await biliClient.user.getMyInfo(undefined, { signal })
+          const stat = await biliClient.relation.getStat(userInfo.mid, { signal })
+
+          // 官方接口两个都是粉丝数...
+          userInfo.follower = stat.follower
+          userInfo.following = stat.following
+          await useUserStore().loginUser({
+            ...userInfo,
+            userCookie: context.userCookie,
+          })
+          emit('loginSuccess', userInfo)
+          visible.value = false
+          return
+        }
+
+        if (result.code === 86038) {
+          loginResult.value = '二维码已失效，正在自动刷新...'
+          refreshQRCode = true
+          continue
+        }
+
+        await sleep(1233, signal)
+      }
+    }
+
+    if (signal.aborted) {
+      loginResult.value = '取消登录'
+      return
+    }
+
+    throw new Error('登录超时')
+  } catch (error) {
+    if (signal.aborted) {
+      loginResult.value = '取消登录'
+      return
+    }
+    loginResult.value = `登录失败：${getErrorMessage(error)}`
+    throw error
+  }
 }
 
 watch(visible, (newValue) => {

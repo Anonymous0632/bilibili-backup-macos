@@ -6,15 +6,18 @@ import { getAppLogLevel } from '@/shared/common/app-log.js'
 import { mainFileLogger, getPluginLogger } from '@/main/common/main-logger.js'
 import type { ToolkitPlugin } from '@/shared/types/toolkit-plugin.js'
 import { dynamicCall } from '@ybgnb/utils'
+import { electronFetch, installElectronFetch } from '@/main/utils/electron-fetch.js'
 
 class BiliApiProxy {
   private clients = new Map<string, BiliClient>()
   private abortMap = new Map<string, AbortController>()
 
   create(config?: Partial<Omit<BiliApiClientConfig, 'id'>>, plugin?: ToolkitPlugin): BiliApiClientConfig {
+    installElectronFetch()
     const logger = plugin ? getPluginLogger(plugin.id) : mainFileLogger
     const client = new BiliClient({
       ...config,
+      fetcher: electronFetch,
       logLevel: getAppLogLevel(),
       logger: logger,
     })

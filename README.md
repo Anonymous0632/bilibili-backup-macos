@@ -1,14 +1,19 @@
 # 哔哩哔哩账号备份 macOS 版
 
-这是基于原项目 [hzhilong/bilibili-backup](https://github.com/hzhilong/bilibili-backup) 编译并做 macOS 启动适配后得到的 macOS 可运行版本。
+这是面向 macOS 的哔哩哔哩账号数据备份工具整合仓库，包含两个项目：
 
-原项目主要面向 Windows 分发。本仓库保留原始源码和资源，并补充了 macOS 构建脚本、应用打包流程，以及已验证可双击启动的 macOS DMG 分发包。
+- `bilibili-backup`：基于原项目 [hzhilong/bilibili-backup](https://github.com/hzhilong/bilibili-backup) 编译并做 macOS 启动适配后的历史 Java/Swing 版本。
+- `bilitoolkit/`：基于原作者新项目 [hzhilong/bilitoolkit](https://github.com/hzhilong/bilitoolkit) 整合的 Electron/Vue 版本，已补齐 macOS 打包、Retina 图标、DMG 分发和插件加载修复。
+
+原 Java 项目主要面向 Windows 分发。本仓库保留原始源码和资源，并补充了 macOS 构建脚本、应用打包流程，以及已验证可双击启动的 macOS DMG 分发包。BiliToolkit 子项目则作为新版工具箱方案，包含哔哩备份姬、速升姬、弹幕工具箱和图片下载插件。
 
 ## 下载
 
 请在本仓库的 GitHub Releases 下载：
 
 - `哔哩哔哩账号备份-2.1.6.dmg`
+- `BiliToolkit_0.0.4_arm64.dmg`
+- `BiliToolkit_0.0.4_x64.dmg`
 
 当前构建验证环境：
 
@@ -16,8 +21,10 @@
 - Apple Silicon / arm64
 - OpenJDK 21
 - Maven 3.9.x
+- Node.js 22
+- pnpm 11
 
-DMG 内的 `.app` 已内置 Java runtime，普通使用不需要额外安装 Java。
+Java 版 DMG 内的 `.app` 已内置 Java runtime，普通使用不需要额外安装 Java。BiliToolkit DMG 内的 `.app` 已内置 Electron runtime，普通使用不需要额外安装 Node.js。
 
 ## macOS 适配说明
 
@@ -37,6 +44,8 @@ Failed to launch JVM
 然后再启动真正的 Java 应用。程序运行产生的数据也会保存在该目录下。
 
 ## 从源码构建
+
+### Java 历史版
 
 需要安装 JDK 21 和 Maven。推荐使用 Homebrew：
 
@@ -69,11 +78,38 @@ dist/macos/哔哩哔哩账号备份.app
 dist/macos-dmg/哔哩哔哩账号备份-2.1.6.dmg
 ```
 
+### BiliToolkit 新版
+
+需要 Node.js 20.19+ 或 22.12+，推荐使用仓库声明的 pnpm：
+
+```bash
+cd bilitoolkit
+pnpm install
+pnpm run build
+pnpm run build:all
+pnpm run app:dist
+```
+
+产物位置：
+
+```text
+bilitoolkit/release/0.0.4/BiliToolkit_0.0.4_arm64.dmg
+bilitoolkit/release/0.0.4/BiliToolkit_0.0.4_x64.dmg
+```
+
+BiliToolkit macOS 版已做以下适配：
+
+- 本地插件文件使用 `loadFile()` 加载，修复 macOS 下 `ERR_INVALID_URL` 导致插件打不开的问题。
+- 默认窗口调整为 1280x820，并启用 Electron high-DPI 支持。
+- 从 SVG 生成 Retina `.icns` 图标。
+- arm64/x64 DMG 和 zip 双架构输出。
+
 ## 与上游项目的关系
 
 本仓库不是原作者官方 macOS 发布版。代码、功能和许可基于原项目：
 
 - 上游仓库：[hzhilong/bilibili-backup](https://github.com/hzhilong/bilibili-backup)
+- 新版工具箱：[hzhilong/bilitoolkit](https://github.com/hzhilong/bilitoolkit)
 - 上游 README：[UPSTREAM_README.md](./UPSTREAM_README.md)
 - 许可证：MIT License
 
@@ -81,4 +117,4 @@ dist/macos-dmg/哔哩哔哩账号备份-2.1.6.dmg
 
 ## 注意
 
-原项目 README 中已说明项目停止维护，相关功能已迁移至作者的新项目。B 站接口和风控策略可能变化，本仓库只保证 macOS 打包和启动适配，不保证所有业务功能长期可用。
+原 Java 项目 README 中已说明项目停止维护，相关功能已迁移至作者的新项目。B 站接口和风控策略可能变化，本仓库只保证 macOS 打包、启动和已验证的插件加载适配，不保证所有业务功能长期可用。

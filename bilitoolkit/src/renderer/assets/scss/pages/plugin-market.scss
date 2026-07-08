@@ -1,0 +1,14 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .options{
+    margin-left: auto;
+  }
+}
+
+.list-container {
+  flex: 1;
+  overflow-y: auto;
+}

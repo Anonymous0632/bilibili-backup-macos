@@ -1,0 +1,50 @@
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  margin-bottom: .5em;
+}
+
+.user-list-wrapper{
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+
+  .user-list {
+    padding: 10px 6px;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px 30px;
+
+    ::v-deep(.bili-user-card) {
+      width: unset;
+    }
+  }
+
+}
+
+
+.options{
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  > i {
+    width: 28px;
+    height: 28px;
+    padding: 5px 4px 3px 4px;
+    font-size: 20px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background .3s ease;
+
+    &:hover {
+      background: var(--app-color-primary-transparent-15);
+    }
+  }
+}

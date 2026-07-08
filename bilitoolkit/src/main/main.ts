@@ -1,0 +1,106 @@
+// https://www.electronjs.org/zh/docs/latest/tutorial/quick-start
+// app 控制应用程序的事件生命周期（相当于应用程序）
+// BrowserWindow 创建并控制浏览器窗口（相当于打开桌面弹框）
+import { app, BrowserWindow, ipcMain, session } from 'electron'
+import * as os from 'node:os'
+import { windowManager } from '@/main/window/window-manager.js'
+import { appPath } from '@/main/common/app-path.js'
+import { mainEnv } from '@/main/common/main-env.js'
+import { mainLogger } from '@/main/common/main-logger.js'
+
+if (mainEnv.DEV) {
+  // Source Map 支持库 => 开发环境打印日志时输出源码路径和行号
+  ;(await import('source-map-support')).install()
+}
+
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
+app.commandLine.appendSwitch('disable-web-security')
+app.commandLine.appendSwitch('high-dpi-support', '1')
+//if (mainEnv.DEV) app.commandLine.appendSwitch('disable-http-cache')
+
+process.on('uncaughtException', (err) => {
+  mainLogger.error('uncaughtException:', err)
+  app.quit()
+})
+
+process.on('unhandledRejection', (reason) => {
+  mainLogger.error('unhandledRejection:', reason)
+  app.quit()
+})
+
+// 设置全局最大监听器数
+ipcMain.setMaxListeners(0)
+
+// 主窗口
+let mainWindow: BrowserWindow | null = null
+
+// 禁用 Windows 7 的 GPU 加速
+if (os.release().startsWith('6.1')) {
+  app.disableHardwareAcceleration()
+}
+
+// 设置 Windows 10+ 通知的应用程序名称
+if (process.platform === 'win32') app.setAppUserModelId(app.getName())
+
+// 创建窗口 https://www.electronjs.org/zh/docs/latest/api/browser-window
+const createWindow = async () => {
+  mainWindow = windowManager.createWindow(
+    {
+      width: 1280,
+      height: 820,
+      minWidth: 1000,
+      minHeight: 700,
+      webPreferences: {
+        preload: appPath.preloadJS,
+      },
+    },
+    { show: true },
+  )
+
+  // 初始化主窗口相关的 IPC 事件监听和处理
+  await windowManager.initMainWindow(mainWindow)
+}
+
+// 这段程序将会在 Electron 结束初始化和创建浏览器窗口的时候调用
+// 部分 API 在 ready 事件触发后才能使用。
+app.whenReady().then(() => {
+  if (mainEnv.DEV) {
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      const url = details.url
+      const isImage = /\.(png|jpg|jpeg|gif|webp|svg|bmp|ico)(\?|$)/i.test(url)
+
+      if (!isImage) {
+        // 非图片请求：强制禁用缓存
+        details.requestHeaders['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        details.requestHeaders['Pragma'] = 'no-cache'
+        callback({ cancel: false, requestHeaders: details.requestHeaders })
+        return
+      }
+      // 图片请求：不修改头，保持默认缓存策略
+      callback({ cancel: true, requestHeaders: details.requestHeaders })
+    })
+  }
+  createWindow().then()
+})
+
+// 除了 macOS 外，当所有窗口都被关闭的时候退出程序。 因此, 通常对应用程序和它们的菜单栏来说应该时刻保持激活状态,
+// 直到用户使用 Cmd + Q 明确退出
+app.on('window-all-closed', () => {
+  mainWindow = null
+  if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  process.exit(0)
+})
+
+app.on('activate', () => {
+  // 在 macOS 系统内, 如果没有已开启的应用窗口
+  // 点击托盘图标时通常会重新创建一个新窗口
+  const allWindows = BrowserWindow.getAllWindows()
+  if (allWindows.length) {
+    allWindows[0].focus()
+  } else {
+    createWindow()
+  }
+})

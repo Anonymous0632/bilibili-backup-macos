@@ -41,3 +41,5 @@ qr/
 
 # Release artifacts are uploaded to GitHub Releases instead of git.
 release/*.dmg
+release/bilitoolkit/*.dmg
+release/bilitoolkit/*.zip

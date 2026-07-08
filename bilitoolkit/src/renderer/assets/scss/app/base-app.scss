@@ -1,0 +1,70 @@
+@use "../abstracts/variables" as *;
+@use './utilities' as *;
+
+body {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  padding: $body-padding;
+  box-sizing: border-box;
+  margin: 0;
+  line-height: 1.6;
+  font-family: Inter,
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  Oxygen,
+  Ubuntu,
+  Cantarell,
+  'Fira Sans',
+  'Droid Sans',
+  'Helvetica Neue',
+  sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  // 浏览器在绘制文本时将着重考虑易读性，而不是渲染速度和几何精度。它会使字间距和连字有效。
+  text-rendering: optimizeLegibility;
+  // WebKit 字体抗锯齿
+  -webkit-font-smoothing: antialiased;
+  // macOS 字体灰度抗锯齿
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #00000000;
+
+  #app {
+    width: 100%;
+    height: 100%;
+    border-radius: $app-border-radius;
+    overflow: hidden;
+    color: var(--el-text-color-regular);
+  }
+}
+
+/* 解决ele遮罩超出内容区域 */
+body .el-overlay {
+  &,
+  & > .el-overlay-dialog {
+    top: $body-padding !important;
+    // right: $body-padding !important;
+    // bottom: $body-padding !important;
+    left: $body-padding !important;
+    border-radius: $app-border-radius !important;
+    height: calc(100% - 2 * $body-padding) !important;
+    width: calc(100% - 2 * $body-padding) !important;
+    // box-sizing: border-box !important;
+  }
+}
+
+/* 解决居中显示的弹窗太靠近边缘的问题 */
+body .el-overlay-dialog {
+  padding: 20px 0;
+  box-sizing: border-box;
+  /* 不显示滚动条 */
+  scrollbar-width: none;
+}
+
+body .el-dialog {
+  box-sizing: border-box;
+}
+

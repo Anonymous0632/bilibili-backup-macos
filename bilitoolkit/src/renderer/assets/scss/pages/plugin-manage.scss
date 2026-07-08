@@ -1,0 +1,19 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .actions{
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+}
+
+.list-wrapper {
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+}

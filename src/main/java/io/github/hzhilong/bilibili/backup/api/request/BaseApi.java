@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +45,10 @@ public class BaseApi<D> implements AddQueryParams {
      * 最长的延迟时间 毫秒
      */
     public final static int MAX_DELAY_TIME = 5 * 1000;
+
+    private static final int MAX_GET_RETRY_COUNT = 3;
+
+    private static final long GET_RETRY_BASE_DELAY_MILLIS = 1500;
 
     protected OkHttpClient client;
 
@@ -232,43 +237,70 @@ public class BaseApi<D> implements AddQueryParams {
     }
 
     public ApiResponse<D> apiRequest(Map<String, String> formParams, String jsonBody, boolean isParseBody) throws BusinessException {
-        Call call = client.newCall(this.getRequest(formParams, jsonBody));
-        try (Response response = call.execute()) {
-            if (response.isSuccessful() && response.body() != null) {
-                if (this.dataClasses != null && this.dataClasses[0] != null && GeneratedMessageV3.class.isAssignableFrom(this.dataClasses[0]) && protoCallback != null) {
-                    D data = protoCallback.parse(response.body().byteStream());
-                    ApiResponse<D> apiResponse = new ApiResponse<>();
-                    apiResponse.setBody("");
-                    apiResponse.setHeaders(response.headers());
-                    ApiResult<D> apiResult = new ApiResult<>();
-                    apiResult.setCode(0);
-                    apiResult.setMessage("");
-                    apiResult.setData(data);
-                    apiResponse.setApiResult(apiResult);
-                    return apiResponse;
-                } else {
-                    String result = response.body().string();
-                    log.debug("响应：({})", result);
-                    if (!StringUtils.isEmpty(result)) {
+        Request request = this.getRequest(formParams, jsonBody);
+        boolean isGetRequest = formParams == null && StringUtils.isEmpty(jsonBody);
+        for (int attempt = 1; ; attempt++) {
+            Call call = client.newCall(request);
+            try (Response response = call.execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    if (this.dataClasses != null && this.dataClasses[0] != null && GeneratedMessageV3.class.isAssignableFrom(this.dataClasses[0]) && protoCallback != null) {
+                        D data = protoCallback.parse(response.body().byteStream());
                         ApiResponse<D> apiResponse = new ApiResponse<>();
-                        apiResponse.setBody(result);
+                        apiResponse.setBody("");
                         apiResponse.setHeaders(response.headers());
-                        if (isParseBody) {
-                            apiResponse.setApiResult(parseApiResult(this.dataClasses, result));
-                        }
+                        ApiResult<D> apiResult = new ApiResult<>();
+                        apiResult.setCode(0);
+                        apiResult.setMessage("");
+                        apiResult.setData(data);
+                        apiResponse.setApiResult(apiResult);
                         return apiResponse;
                     } else {
-                        log.error("响应为空({})", response.code());
-                        throw new BusinessException(String.format("响应为空(%s)", response.code()));
+                        String result = response.body().string();
+                        log.debug("响应：({})", result);
+                        if (!StringUtils.isEmpty(result)) {
+                            ApiResponse<D> apiResponse = new ApiResponse<>();
+                            apiResponse.setBody(result);
+                            apiResponse.setHeaders(response.headers());
+                            if (isParseBody) {
+                                apiResponse.setApiResult(parseApiResult(this.dataClasses, result));
+                            }
+                            return apiResponse;
+                        } else {
+                            log.error("响应为空({})", response.code());
+                            throw new BusinessException(String.format("响应为空(%s)", response.code()));
+                        }
                     }
+                } else {
+                    log.debug("请求失败，code：{}", response.code());
+                    throw new BusinessException(String.format("请求失败，code：%s", response.code()));
                 }
-            } else {
-                log.debug("请求失败，code：{}", response.code());
-                throw new BusinessException(String.format("请求失败，code：%s", response.code()));
+            } catch (IOException e) {
+                if (isRetryableGetTimeout(isGetRequest, attempt, e)) {
+                    retryGetRequest(request, attempt, e);
+                    continue;
+                }
+                log.error("请求出错", e);
+                throw new BusinessException("请求出错：" + e.getMessage());
             }
-        } catch (IOException e) {
-            log.error("请求出错", e);
-            throw new BusinessException("请求出错：" + e.getMessage());
+        }
+    }
+
+    private boolean isRetryableGetTimeout(boolean isGetRequest, int attempt, IOException e) {
+        return isGetRequest
+                && attempt < MAX_GET_RETRY_COUNT
+                && e instanceof SocketTimeoutException
+                && !Thread.currentThread().isInterrupted();
+    }
+
+    private void retryGetRequest(Request request, int attempt, IOException e) throws BusinessException {
+        long delayMillis = GET_RETRY_BASE_DELAY_MILLIS * attempt + random.nextInt(1000);
+        log.warn("GET请求超时，准备第{}次重试，{}ms后重试：{}，原因：{}",
+                attempt, delayMillis, request.url(), e.getMessage());
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("请求重试被中断");
         }
     }
 

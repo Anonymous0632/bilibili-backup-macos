@@ -16,6 +16,7 @@ import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Shared OkHttp client setup.
@@ -27,6 +28,10 @@ public final class HttpClientFactory {
 
     public static OkHttpClient createDefault() {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .callTimeout(90, TimeUnit.SECONDS)
                 .addInterceptor(new ThrottlingInterceptor(1000));
         configureBilibiliTlsFallback(builder);
         return builder.build();

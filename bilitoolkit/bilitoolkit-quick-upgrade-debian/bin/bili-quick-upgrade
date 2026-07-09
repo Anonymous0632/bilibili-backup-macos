@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const { ask, getMyInfo } = require('../lib/bili.cjs');
+const {
+  checkNodeVersion,
+  createLogger,
+  loadConfig,
+  maskCookie,
+  readJson,
+  resolvePaths
+} = require('../lib/runtime.cjs');
+const { assertPluginLoadable, runOnce } = require('../lib/runner.cjs');
+const { loadState, tick } = require('../lib/scheduler.cjs');
+
+function usage() {
+  process.stdout.write(`用法:
+  bili-quick-upgrade tick
+  bili-quick-upgrade run --once [--yes]
+  bili-quick-upgrade status [--no-check-cookie]
+  bili-quick-upgrade doctor
+
+环境变量:
+  BILI_QUICK_UPGRADE_CONFIG   配置文件路径
+  BILI_QUICK_UPGRADE_STATE    状态文件路径
+  BILI_QUICK_UPGRADE_LOG      日志文件路径
+  BILI_QUICK_UPGRADE_PLUGIN   插件 index.js 路径
+`);
+}
+
+async function confirmRun(args) {
+  if (args.includes('--yes') || args.includes('--no-confirm')) return;
+  if (!process.stdin.isTTY) {
+    throw new Error('run --once 会真实执行登录/观看/分享/投币。非交互环境请显式添加 --yes。');
+  }
+  const answer = await ask('这会真实执行登录/观看/分享/投币，确认继续？输入 yes 继续: ');
+  if (answer.trim().toLowerCase() !== 'yes') {
+    throw new Error('已取消。');
+  }
+}
+
+async function printStatus(paths, config, args) {
+  const logger = createLogger(paths.logPath, config.logLevel);
+  let pluginInfo;
+  try {
+    pluginInfo = assertPluginLoadable(paths);
+  } catch (error) {
+    pluginInfo = { error: error.message };
+  }
+  const state = loadState(paths, config);
+  const users = Array.isArray(config.task.users) ? config.task.users : [];
+  process.stdout.write(`路径:
+  程序: ${paths.appDir}
+  配置: ${paths.configPath}
+  状态: ${paths.statePath}
+  日志: ${paths.logPath}
+
+运行:
+  Node: ${process.version}
+  插件: ${pluginInfo.error ? `加载失败: ${pluginInfo.error}` : `${pluginInfo.name || 'quick-upgrade'} (run=${pluginInfo.hasRun})`}
+  时区: ${config.timezone}
+  随机窗口: ${config.randomWindow.start}-${config.randomWindow.end}
+  今日状态: ${state.status}
+  今日计划: ${state.scheduledLocalTime || '-'}
+  重试次数: ${state.attempts || 0}/${state.maxAttempts || (config.retry && config.retry.maxAttempts) || 2}
+
+账号:
+`);
+  if (users.length === 0) {
+    process.stdout.write('  未配置账号。请先运行 bili-quick-upgrade-login。\n');
+    return;
+  }
+  for (const user of users) {
+    const cookie = user.userCookie && user.userCookie.cookie;
+    process.stdout.write(`  - ${user.name || user.mid} (${user.mid || (user.userCookie && user.userCookie.uid) || 'unknown'}) cookie=${maskCookie(cookie)}\n`);
+  }
+  if (args.includes('--no-check-cookie')) return;
+  for (const user of users) {
+    const cookie = user.userCookie && user.userCookie.cookie;
+    if (!cookie) {
+      logger.warn(`账号 ${user.name || user.mid} 未配置 cookie。`);
+      continue;
+    }
+    try {
+      const info = await getMyInfo(cookie);
+      process.stdout.write(`  Cookie 校验: ${info.name || info.mid} 有效\n`);
+    } catch (error) {
+      process.stdout.write(`  Cookie 校验失败: ${error.message}\n`);
+    }
+  }
+}
+
+async function main() {
+  checkNodeVersion();
+  const args = process.argv.slice(2);
+  const command = args[0];
+  if (!command || args.includes('--help') || args.includes('-h')) {
+    usage();
+    return;
+  }
+  const paths = resolvePaths();
+  const config = loadConfig(paths);
+  const logger = createLogger(paths.logPath, config.logLevel);
+
+  if (command === 'doctor') {
+    const info = assertPluginLoadable(paths);
+    logger.info(`插件加载成功: ${info.name || 'quick-upgrade'}, run=${info.hasRun}`);
+    return;
+  }
+  if (command === 'status') {
+    await printStatus(paths, config, args);
+    return;
+  }
+  if (command === 'tick') {
+    await tick(paths, config, logger);
+    return;
+  }
+  if (command === 'run' && args.includes('--once')) {
+    await confirmRun(args);
+    const result = await runOnce(paths, config, logger);
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  throw new Error(`未知命令: ${args.join(' ')}`);
+}
+
+main().catch((error) => {
+  try {
+    const paths = resolvePaths();
+    const config = loadConfig(paths);
+    createLogger(paths.logPath, config.logLevel).error(error.stack || error.message || String(error));
+  } catch (_) {
+    process.stderr.write(`${error.stack || error.message || String(error)}\n`);
+  }
+  process.exitCode = 1;
+});

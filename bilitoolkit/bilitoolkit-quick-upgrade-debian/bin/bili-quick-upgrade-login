@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+const {
+  checkNodeVersion,
+  createLogger,
+  loadConfig,
+  resolvePaths,
+  saveConfig
+} = require('../lib/runtime.cjs');
+const { loginWithQr } = require('../lib/bili.cjs');
+
+function usage() {
+  process.stdout.write(`用法:
+  bili-quick-upgrade-login
+
+说明:
+  在终端显示二维码或扫码链接，手机 B 站扫码确认后写入配置文件。
+`);
+}
+
+async function main() {
+  checkNodeVersion();
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    usage();
+    return;
+  }
+  const paths = resolvePaths();
+  const config = loadConfig(paths);
+  saveConfig(paths, config);
+  const logger = createLogger(paths.logPath, config.logLevel);
+  logger.info(`配置文件: ${paths.configPath}`);
+  await loginWithQr(paths, logger);
+}
+
+main().catch((error) => {
+  try {
+    const paths = resolvePaths();
+    const config = loadConfig(paths);
+    createLogger(paths.logPath, config.logLevel).error(error.stack || error.message || String(error));
+  } catch (_) {
+    process.stderr.write(`${error.stack || error.message || String(error)}\n`);
+  }
+  process.exitCode = 1;
+});

@@ -12,7 +12,7 @@ This release adds stricter following-list management and recovery behavior to th
 
 ## Artifact
 
-- `哔哩哔哩账号备份-2.1.6.dmg`
+- `bilibili-backup-macos-2.1.6.dmg`
 
 ## Validation
 

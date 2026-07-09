@@ -11,7 +11,7 @@
 
 请在本仓库的 GitHub Releases 下载：
 
-- 最新 Java 版：`哔哩哔哩账号备份-2.1.6.dmg`
+- 最新 Java 版：`bilibili-backup-macos-2.1.6.dmg`
 - `BiliToolkit_0.0.4_arm64.dmg`
 - `BiliToolkit_0.0.4_x64.dmg`
 

@@ -40,7 +40,7 @@ function isRetriableElectronNetworkError(error: unknown): boolean {
 function headersToObject(headers?: HeadersInit): Record<string, string> {
   if (!headers) return {}
   if (headers instanceof Headers) return Object.fromEntries(headers.entries())
-  if (Array.isArray(headers)) return Object.fromEntries(headers.map(([key, value]) => [key, value]))
+  if (Array.isArray(headers)) return Object.fromEntries(headers.map(([key, value]) => [key, String(value)]))
   return Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, String(value)]))
 }
 

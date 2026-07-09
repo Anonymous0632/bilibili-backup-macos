@@ -1,0 +1,71 @@
+{
+  "taskSchedule": {
+    "type": "cron",
+    "value": "5 0 * * *"
+  },
+  "taskConfigSchema": {
+    "fields": [
+      {
+        "name": "users",
+        "label": "需要升级的用户",
+        "type": "users",
+        "description": "请选择需要快速升级的用户",
+        "required": true
+      },
+      {
+        "name": "dailyLogin",
+        "label": "每日登录",
+        "type": "switch",
+        "default": true,
+        "description": "主站[每日登录]任务，经验 +5"
+      },
+      {
+        "name": "dailyWatch",
+        "label": "每日观看",
+        "type": "switch",
+        "default": true,
+        "description": "主站[每日观看视频]任务，经验 +5"
+      },
+      {
+        "name": "dailyCoin",
+        "label": "每日投币",
+        "type": "select",
+        "options": [
+          {
+            "label": "0个",
+            "value": "0"
+          },
+          {
+            "label": "1个",
+            "value": "1"
+          },
+          {
+            "label": "2个",
+            "value": "2"
+          },
+          {
+            "label": "3个",
+            "value": "3"
+          },
+          {
+            "label": "4个",
+            "value": "4"
+          },
+          {
+            "label": "5个",
+            "value": "5"
+          }
+        ],
+        "default": "0",
+        "description": "主站[每日投币]任务。从动态中选取视频投币，每次投币经验 +10"
+      },
+      {
+        "name": "dailyShare",
+        "label": "每日分享",
+        "type": "switch",
+        "default": true,
+        "description": "主站[每日分享]任务，经验 +5"
+      }
+    ]
+  }
+}

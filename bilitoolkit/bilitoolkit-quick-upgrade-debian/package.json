@@ -1,0 +1,13 @@
+{
+  "name": "bilitoolkit-quick-upgrade-debian",
+  "version": "0.0.2-vps.1",
+  "private": true,
+  "description": "Headless Debian/VPS runner for bilitoolkit-plugin-quick-upgrade.",
+  "bin": {
+    "bili-quick-upgrade": "./bin/bili-quick-upgrade",
+    "bili-quick-upgrade-login": "./bin/bili-quick-upgrade-login"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

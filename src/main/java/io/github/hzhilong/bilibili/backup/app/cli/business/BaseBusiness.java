@@ -1,9 +1,9 @@
 package io.github.hzhilong.bilibili.backup.app.cli.business;
 
+import io.github.hzhilong.bilibili.backup.app.utils.HttpClientFactory;
 import okhttp3.OkHttpClient;
 import io.github.hzhilong.bilibili.backup.api.bean.Upper;
 import io.github.hzhilong.base.error.BusinessException;
-import io.github.hzhilong.bilibili.backup.api.request.ThrottlingInterceptor;
 
 import java.util.Scanner;
 
@@ -18,8 +18,7 @@ public abstract class BaseBusiness {
     protected OkHttpClient client;
 
     public BaseBusiness() {
-        this.client = new OkHttpClient.Builder().addInterceptor(
-                new ThrottlingInterceptor(1000)).build();
+        this.client = HttpClientFactory.createDefault();
     }
 
     /**

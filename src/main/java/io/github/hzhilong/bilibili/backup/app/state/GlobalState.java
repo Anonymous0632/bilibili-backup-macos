@@ -1,7 +1,7 @@
 package io.github.hzhilong.bilibili.backup.app.state;
 
+import io.github.hzhilong.bilibili.backup.app.utils.HttpClientFactory;
 import okhttp3.OkHttpClient;
-import io.github.hzhilong.bilibili.backup.api.request.ThrottlingInterceptor;
 
 import javax.swing.*;
 
@@ -13,8 +13,7 @@ import javax.swing.*;
  */
 public class GlobalState {
 
-    public static OkHttpClient CLIENT = new OkHttpClient.Builder().addInterceptor(
-            new ThrottlingInterceptor(1000)).build();
+    public static OkHttpClient CLIENT = HttpClientFactory.createDefault();
 
     /**
      * 处理中（禁止退出/切换tab）

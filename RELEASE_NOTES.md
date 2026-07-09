@@ -1,3 +1,29 @@
+# v2.1.6-macos.2
+
+This release fixes QR-code login failures in the Java Swing macOS build.
+
+## Changes
+
+- Add a shared OkHttp client factory for GUI and CLI flows.
+- Preserve default Java TLS validation, with a restricted fallback only for `*.bilibili.com` and `*.hdslb.com` when the embedded runtime cannot build the certificate path.
+- Fix the post-scan login step that fetches `https://api.bilibili.com/x/frontend/finger/spi` and previously failed with `PKIX path building failed`.
+
+## Artifact
+
+- `bilibili-backup-macos-2.1.6.dmg`
+
+## Validation
+
+- Verified the failing Bilibili `finger/spi` endpoint returns `code=0` with the patched client.
+- Rebuilt the macOS `.app` with OpenJDK 21 and Maven.
+- Verified the DMG checksum with `hdiutil verify`.
+
+## Upstream
+
+Based on [hzhilong/bilibili-backup](https://github.com/hzhilong/bilibili-backup).
+
+---
+
 # v2.1.6-macos.1
 
 This release packages `hzhilong/bilibili-backup` 2.1.6 for macOS.

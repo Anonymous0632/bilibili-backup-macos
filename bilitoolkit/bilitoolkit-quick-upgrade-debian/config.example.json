@@ -11,7 +11,7 @@
       "max": 90
     }
   },
-  "logLevel": "info",
+  "logLevel": "error",
   "task": {
     "users": [],
     "dailyLogin": true,

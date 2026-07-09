@@ -8,7 +8,7 @@
 - 每天按北京时间 `09:00-23:00` 随机挑一个时间执行。
 - 一次执行登录、观看、投币、分享。
 - 当天失败后随机延迟 `30-90` 分钟重试，最多重试 `2` 次。
-- cron 每 5 分钟运行一次 `tick`，真正执行时间由本地状态文件控制。
+- cron 每小时运行一次 `tick`，真正执行时间由本地状态文件控制。
 
 ## 系统要求
 
@@ -76,10 +76,10 @@ sudo bili-quick-upgrade run --once --yes
 
 ## 随机执行策略
 
-cron 文件内容为每 5 分钟运行一次：
+cron 文件内容为每小时运行一次：
 
 ```cron
-*/5 * * * * root /opt/bilitoolkit-quick-upgrade/bin/bili-quick-upgrade tick >> /var/log/bilitoolkit-quick-upgrade/cron.log 2>&1
+0 * * * * root /opt/bilitoolkit-quick-upgrade/bin/bili-quick-upgrade tick >> /var/log/bilitoolkit-quick-upgrade/cron.log 2>&1
 ```
 
 `tick` 的行为：
@@ -109,7 +109,7 @@ cron 文件内容为每 5 分钟运行一次：
       "max": 90
     }
   },
-  "logLevel": "info",
+  "logLevel": "error",
   "task": {
     "users": [],
     "dailyLogin": true,

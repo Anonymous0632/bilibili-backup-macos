@@ -59,7 +59,7 @@ BILI_QUICK_UPGRADE_STATE=${STATE_DIR}/state.json
 BILI_QUICK_UPGRADE_LOG=${LOG_DIR}/quick-upgrade.log
 BILI_QUICK_UPGRADE_APP_DIR=${APP_DIR}
 
-*/5 * * * * root ${APP_DIR}/bin/bili-quick-upgrade tick >> ${LOG_DIR}/cron.log 2>&1
+0 * * * * root ${APP_DIR}/bin/bili-quick-upgrade tick >> ${LOG_DIR}/cron.log 2>&1
 CRON
 chmod 644 "${CRON_FILE}"
 

@@ -69,7 +69,7 @@ function defaultConfig() {
     timezone: 'Asia/Shanghai',
     randomWindow: { start: '09:00', end: '23:00' },
     retry: { maxAttempts: 2, delayMinutes: { min: 30, max: 90 } },
-    logLevel: 'info',
+    logLevel: 'error',
     task: {
       users: [],
       dailyLogin: true,

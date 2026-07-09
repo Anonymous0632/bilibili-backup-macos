@@ -50,6 +50,7 @@ public class AppMenu extends BaseMenu {
                 new BaseSettingDialog(parentWindow, appIconPath,
                         new ArrayList() {{
                             add(new CheckBoxSettingItem(AppSettingItems.DIRECT_RESTORE));
+                            add(new CheckBoxSettingItem(AppSettingItems.EXACT_SYNC_FOLLOWING));
                             add(new CheckBoxSettingItem(AppSettingItems.ALLOW_FAILURE));
                             add(new CheckBoxSettingItem(AppSettingItems.FAV_SAVE_TO_DEFAULT_ON_FAILURE));
                             add(new CheckBoxSettingItem(AppSettingItems.SELECT_FAV));

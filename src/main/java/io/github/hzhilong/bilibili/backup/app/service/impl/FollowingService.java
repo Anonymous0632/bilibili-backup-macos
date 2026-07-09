@@ -19,7 +19,9 @@ import io.github.hzhilong.bilibili.backup.api.request.ModifyApi;
 import io.github.hzhilong.bilibili.backup.api.user.User;
 import io.github.hzhilong.bilibili.backup.app.bean.BusinessResult;
 import io.github.hzhilong.bilibili.backup.app.business.BusinessType;
+import io.github.hzhilong.bilibili.backup.app.constant.AppConstant;
 import io.github.hzhilong.bilibili.backup.app.error.ApiException;
+import io.github.hzhilong.bilibili.backup.app.error.NeedEndLoopException;
 import io.github.hzhilong.bilibili.backup.app.service.RelationService;
 import io.github.hzhilong.bilibili.backup.app.state.setting.AppSettingItems;
 import io.github.hzhilong.bilibili.backup.gui.dialog.RelationTagSelectDialog;
@@ -36,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,11 +52,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FollowingService extends RelationService implements NeedContext {
 
+    private static final int FOLLOW_RISK_CONTROL_RETRY_WAIT_SECONDS = 15 * 60;
+
+    private static final int FOLLOW_RISK_CONTROL_WAIT_STEP_SECONDS = 10;
+
     @Setter
     private Window parentWindow;
 
     @Setter
     private String appIconPath;
+
+    @Setter
+    private boolean exactSyncFollowing;
 
     public FollowingService(OkHttpClient client, User user, String path) {
         super(client, user, path);
@@ -132,6 +142,50 @@ public class FollowingService extends RelationService implements NeedContext {
         return relations;
     }
 
+    public int unfollowCancelledFollowings() throws BusinessException {
+        log.info("正在获取当前账号关注分组...");
+        List<RelationTag> relationTags = getRelationTags();
+        Map<Long, Relation> cancelledFollowings = new LinkedHashMap<>();
+        for (RelationTag tag : relationTags) {
+            handleInterrupt();
+            List<Relation> relations = getRelations(BusinessType.CLEAR, tag);
+            for (Relation relation : relations) {
+                if (isCancelledFollowing(relation)) {
+                    cancelledFollowings.putIfAbsent(relation.getMid(), relation);
+                }
+            }
+        }
+        log.info("已扫描关注列表，发现{}个已注销账号", cancelledFollowings.size());
+        if (cancelledFollowings.isEmpty()) {
+            return 0;
+        }
+
+        int successCount = 0;
+        int failCount = 0;
+        String logNoFormat = StringUtils.getLogNoFormat(cancelledFollowings.size());
+        List<Relation> followings = new ArrayList<>(cancelledFollowings.values());
+        for (int i = 0; i < followings.size(); i++) {
+            handleInterrupt();
+            Relation following = followings.get(i);
+            log.info("{} 取关已注销账号 uid:{}", String.format(logNoFormat, i + 1), following.getMid());
+            try {
+                modify(following, RelationAct.UNFOLLOW, false);
+                successCount++;
+            } catch (BusinessException e) {
+                failCount++;
+                log.info("取关已注销账号 uid:{} 失败：{}", following.getMid(), e.getMessage());
+            }
+        }
+        log.info("已完成取关已注销账号：成功{}个，失败{}个", successCount, failCount);
+        return successCount;
+    }
+
+    private boolean isCancelledFollowing(Relation relation) {
+        return relation != null
+                && relation.getMid() != null
+                && AppConstant.CANCELLED_ACCOUNT_NAME.equals(relation.getUname());
+    }
+
     @Override
     public List<BusinessResult<List<Relation>>> restore() throws BusinessException {
         log.info("正在还原[关注]...");
@@ -201,11 +255,18 @@ public class FollowingService extends RelationService implements NeedContext {
             return null;
         }
 
+        int page = getSegmentPageNo();
+        int pageSize = getSegmentMaxSize();
+        if (exactSyncFollowing && pageSize > 0 && page > 0) {
+            throw new BusinessException("严格同步关注列表需要完整还原，不能与分段还原同时使用");
+        }
+
         Map<Long, Long> oldIdMapNewId = new HashMap<>();
         Map<Long, RelationTag> newRelationTags = new HashMap<>();
+        List<RelationTag> relationTags = null;
         if (oldTags != null && !oldTags.isEmpty()) {
             log.info("获取新账号关注分组...");
-            List<RelationTag> relationTags = getRelationTags();
+            relationTags = getRelationTags();
 
             Map<String, Long> newTags = new HashMap<>();
             for (RelationTag relationTag : relationTags) {
@@ -242,11 +303,20 @@ public class FollowingService extends RelationService implements NeedContext {
 
         HashSet<Long> newFollowingIds = new HashSet<>();
         HashMap<Long, Relation> mapNewFollowing = new HashMap<>();
-        if (isDirectRestore()) {
+        if (isDirectRestore() && !exactSyncFollowing) {
             log.info("还原时忽略新账号现有的数据，直接还原...");
         } else {
-            log.info("获取新账号关注...");
-            List<RelationTag> needGetTags = oldIdMapNewId.entrySet().stream()
+            if (relationTags == null) {
+                log.info("获取新账号关注分组...");
+                relationTags = getRelationTags();
+                for (RelationTag relationTag : relationTags) {
+                    newRelationTags.put(relationTag.getTagId(), relationTag);
+                }
+            }
+            log.info(exactSyncFollowing ? "获取新账号完整关注..." : "获取新账号关注...");
+            List<RelationTag> needGetTags = exactSyncFollowing
+                    ? relationTags
+                    : oldIdMapNewId.entrySet().stream()
                     .map(entry -> newRelationTags.get(entry.getValue()))
                     .collect(Collectors.toList());
             for (RelationTag tag : needGetTags) {
@@ -271,10 +341,8 @@ public class FollowingService extends RelationService implements NeedContext {
         }
 
         Map<String, CopyUser> copyUsers = new HashMap<>();
+        Set<Long> oldFollowingIds = getFollowingIds(oldFollowings);
         Collections.reverse(oldFollowings);
-
-        int page = getSegmentPageNo();
-        int pageSize = getSegmentMaxSize();
         // 截取旧数据
         if (pageSize > 0 && page > 0) {
             log.info("正在还原第{}页，分页大小：{}", page, pageSize);
@@ -300,7 +368,7 @@ public class FollowingService extends RelationService implements NeedContext {
 
                 }
                 try {
-                    modify(oldFollowing, RelationAct.FOLLOW);
+                    followWithRiskControlRetry(oldFollowing);
                 } catch (Exception e) {
                     modifySuccess = false;
                     failIds.add(oldFollowing.getMid());
@@ -367,23 +435,130 @@ public class FollowingService extends RelationService implements NeedContext {
                 }
             }
         }
+        Set<Long> unfollowFailIds = new HashSet<>();
+        int unfollowCount = 0;
+        if (exactSyncFollowing) {
+            unfollowCount = unfollowExtraFollowings(mapNewFollowing, oldFollowingIds, unfollowFailIds);
+        }
         callbackRestoreSegment(oldFollowings);
         List<BusinessResult<List<Relation>>> results = new ArrayList<>();
-        BusinessResult<List<Relation>> result = getListBackupRestoreResult(oldFollowings, failIds);
+        BusinessResult<List<Relation>> result = getListBackupRestoreResult(oldFollowings, failIds, exactSyncFollowing,
+                unfollowCount, unfollowFailIds);
         results.add(result);
         return results;
     }
 
+    private void followWithRiskControlRetry(Relation oldFollowing) throws BusinessException {
+        int retryCount = 0;
+        while (true) {
+            handleInterrupt();
+            try {
+                modify(oldFollowing, RelationAct.FOLLOW);
+                return;
+            } catch (Exception e) {
+                if (!isRetryableFollowFailure(e)) {
+                    throw e;
+                }
+                retryCount++;
+                log.info("关注UP主[{}]失败，疑似触发B站风控或网络超时：{}。等待15分钟后进行第{}次重试，期间可中断任务。",
+                        oldFollowing.getUname(), e.getMessage(), retryCount);
+                waitBeforeFollowRetry(oldFollowing, retryCount);
+            }
+        }
+    }
+
+    private boolean isRetryableFollowFailure(Exception e) {
+        if (e instanceof NeedEndLoopException) {
+            return true;
+        }
+        String message = e.getMessage();
+        if (StringUtils.isEmpty(message)) {
+            return false;
+        }
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
+        return lowerMessage.contains("timeout")
+                || lowerMessage.contains("timed out")
+                || lowerMessage.contains("read timed out")
+                || lowerMessage.contains("风控")
+                || lowerMessage.contains("请求出错")
+                || lowerMessage.contains("code：412")
+                || lowerMessage.contains("code: 412")
+                || lowerMessage.contains("code：429")
+                || lowerMessage.contains("code: 429")
+                || lowerMessage.contains("code：403")
+                || lowerMessage.contains("code: 403");
+    }
+
+    private void waitBeforeFollowRetry(Relation oldFollowing, int retryCount) throws BusinessException {
+        for (int waitedSeconds = 0; waitedSeconds < FOLLOW_RISK_CONTROL_RETRY_WAIT_SECONDS; waitedSeconds += FOLLOW_RISK_CONTROL_WAIT_STEP_SECONDS) {
+            handleInterrupt();
+            int remainingSeconds = FOLLOW_RISK_CONTROL_RETRY_WAIT_SECONDS - waitedSeconds;
+            if (remainingSeconds % 60 == 0) {
+                log.info("关注UP主[{}]第{}次重试等待中，剩余{}分钟", oldFollowing.getUname(), retryCount, remainingSeconds / 60);
+            }
+            try {
+                Thread.sleep(FOLLOW_RISK_CONTROL_WAIT_STEP_SECONDS * 1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new BusinessException("关注风控等待被中断");
+            }
+        }
+    }
+
     @NotNull
-    private static BusinessResult<List<Relation>> getListBackupRestoreResult(List<Relation> oldFollowings, Set<Long> failIds) {
+    private Set<Long> getFollowingIds(List<Relation> followings) {
+        Set<Long> ids = new HashSet<>();
+        if (followings == null) {
+            return ids;
+        }
+        for (Relation following : followings) {
+            if (following != null && following.getMid() != null) {
+                ids.add(following.getMid());
+            }
+        }
+        return ids;
+    }
+
+    private int unfollowExtraFollowings(Map<Long, Relation> newFollowingMap, Set<Long> oldFollowingIds, Set<Long> failIds) throws BusinessException {
+        int needUnfollowCount = 0;
+        for (Relation newFollowing : newFollowingMap.values()) {
+            if (oldFollowingIds.contains(newFollowing.getMid())) {
+                continue;
+            }
+            needUnfollowCount++;
+            handleInterrupt();
+            log.info("严格同步关注列表，取关备份中不存在的UP主：{}", newFollowing.getUname());
+            try {
+                modify(newFollowing, RelationAct.UNFOLLOW, false);
+            } catch (Exception e) {
+                failIds.add(newFollowing.getMid());
+                log.info("严格同步取关UP主[{}]失败：{}", newFollowing.getUname(), e.getMessage());
+                if (!isAllowFailure()) {
+                    throw e;
+                }
+            }
+        }
+        log.info("严格同步关注列表：需要取关{}个，失败{}个", needUnfollowCount, failIds.size());
+        return needUnfollowCount;
+    }
+
+    @NotNull
+    private static BusinessResult<List<Relation>> getListBackupRestoreResult(List<Relation> oldFollowings, Set<Long> failIds,
+                                                                             boolean exactSyncFollowing, int unfollowCount,
+                                                                             Set<Long> unfollowFailIds) {
         BusinessResult<List<Relation>> result = new BusinessResult<>();
         result.setBusinessType(BusinessType.RESTORE);
         result.setItemName("关注");
         int oldSize = oldFollowings.size();
         int newSize = oldSize - failIds.size();
-        String msg = String.format("关注还原%s：已还原%s个，原%s个",
-                oldSize == newSize ? "成功" : "失败", newSize, oldSize);
-        if (oldSize == newSize) {
+        int unfollowSuccessCount = unfollowCount - unfollowFailIds.size();
+        boolean success = oldSize == newSize && unfollowFailIds.isEmpty();
+        String msg = exactSyncFollowing
+                ? String.format("关注严格同步%s：已还原%s个，原%s个，已取关%s个，取关失败%s个",
+                success ? "成功" : "失败", newSize, oldSize, unfollowSuccessCount, unfollowFailIds.size())
+                : String.format("关注还原%s：已还原%s个，原%s个",
+                success ? "成功" : "失败", newSize, oldSize);
+        if (success) {
             result.setSuccess(msg);
         } else {
             result.setFailed(msg);

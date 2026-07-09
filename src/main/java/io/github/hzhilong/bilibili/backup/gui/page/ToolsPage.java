@@ -23,6 +23,7 @@ import io.github.hzhilong.bilibili.backup.gui.worker.tools.SessionRunnable;
 import io.github.hzhilong.bilibili.backup.gui.worker.tools.Tool;
 import io.github.hzhilong.bilibili.backup.gui.worker.tools.ToolBuCallback;
 import io.github.hzhilong.bilibili.backup.gui.worker.tools.ToolRunnable;
+import io.github.hzhilong.bilibili.backup.gui.worker.tools.UnfollowCancelledFollowingRunnable;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 
@@ -91,6 +92,8 @@ public class ToolsPage extends PagePanel {
                 CopyFavRunnable::new, false));
         tools.add(new Tool("移除粉丝中的片姐", "2025.4 出现一大堆自动关注别人的片姐，被关注后可能导致自己的账号被大量举报/警告/封禁",
                 RemoveScamFollowerRunnable::new, true, "是否一键移除粉丝中的片姐？（低等级+大量关注+没有其他活动痕迹）"));
+        tools.add(new Tool("取关已注销账号", "扫描当前关注列表，并一键取关所有昵称为[账号已注销]的博主。",
+                UnfollowCancelledFollowingRunnable::new, true, "是否一键取关所有账号已注销的关注？"));
         tools.add(new Tool("收藏所有投稿", "收藏其他人投稿的所有视频",
                 FavAllVideosRunnable::new, false));
         tools.add(new Tool("AI转正答题", "使用AI自动完成转正答题",

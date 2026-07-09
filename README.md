@@ -11,7 +11,7 @@
 
 请在本仓库的 GitHub Releases 下载：
 
-- `哔哩哔哩账号备份-2.1.6.dmg`
+- 最新 Java 版：`哔哩哔哩账号备份-2.1.6.dmg`
 - `BiliToolkit_0.0.4_arm64.dmg`
 - `BiliToolkit_0.0.4_x64.dmg`
 
@@ -25,6 +25,16 @@
 - pnpm 11
 
 Java 版 DMG 内的 `.app` 已内置 Java runtime，普通使用不需要额外安装 Java。BiliToolkit DMG 内的 `.app` 已内置 Electron runtime，普通使用不需要额外安装 Node.js。
+
+## Java 版功能增强
+
+本仓库的 Java 版仍基于原项目 [hzhilong/bilibili-backup](https://github.com/hzhilong/bilibili-backup) 2.1.6，并在 macOS 可运行打包基础上补充了以下关注管理增强：
+
+- 修复 macOS 登录扫码后可能出现的 Java TLS `PKIX path building failed` 问题。
+- 缓解恢复关注过程中的 `read timeout`：延长 HTTP 超时时间，并对只读 GET 请求增加退避重试。
+- 恢复关注遇到疑似 B 站风控、`read timeout`、HTTP 412/429/403 时，不直接停止任务，而是等待 15 分钟后重试当前 UP，等待期间可以手动中断。
+- 新增“严格同步关注列表”设置：开启后，恢复关注会让当前关注列表与备份完全一致，当前账号多出来、备份中没有的关注会被取关。该功能不能与分段还原同时使用，以避免误取关。
+- 新增“其他工具 -> 取关已注销账号”：扫描当前关注列表，一键取关昵称为 `账号已注销` 的关注对象。
 
 ## macOS 适配说明
 
@@ -118,3 +128,5 @@ BiliToolkit macOS 版已做以下适配：
 ## 注意
 
 原 Java 项目 README 中已说明项目停止维护，相关功能已迁移至作者的新项目。B 站接口和风控策略可能变化，本仓库只保证 macOS 打包、启动和已验证的插件加载适配，不保证所有业务功能长期可用。
+
+“严格同步关注列表”和“取关已注销账号”都会执行取关操作，请在确认当前登录账号和备份数据无误后再使用。

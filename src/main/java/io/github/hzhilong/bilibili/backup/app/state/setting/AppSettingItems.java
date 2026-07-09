@@ -18,6 +18,9 @@ public class AppSettingItems {
     public static AppSettingItem<Boolean> DIRECT_RESTORE
             = new AppSettingItem<>("setting.direct-restore", new BooleanItemValue(false),
             "【还原】：忽略新账号现有的数据，直接还原");
+    public static AppSettingItem<Boolean> EXACT_SYNC_FOLLOWING
+            = new AppSettingItem<>("setting.exact-sync-following", new BooleanItemValue(false),
+            "【还原-关注】：严格同步关注列表（备份中没有的用户会被取关）");
     public static AppSettingItem<Boolean> FAV_SAVE_TO_DEFAULT_ON_FAILURE
             = new AppSettingItem<>("setting.fav-save-to-default-on-failure", new BooleanItemValue(false),
             "【还原】：创建[收藏夹]达到上限后，将该收藏夹的视频移入默认收藏夹");

@@ -12,6 +12,7 @@ import io.github.hzhilong.bilibili.backup.app.constant.AppConstant;
 import io.github.hzhilong.bilibili.backup.app.service.BackupRestoreItem;
 import io.github.hzhilong.bilibili.backup.app.service.BackupRestoreService;
 import io.github.hzhilong.bilibili.backup.app.service.impl.FavoritesService;
+import io.github.hzhilong.bilibili.backup.app.service.impl.FollowingService;
 import io.github.hzhilong.bilibili.backup.app.state.setting.AppSettingItems;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +68,10 @@ public abstract class BackupRestoreRunnable extends BaseRunnable {
             if (service instanceof FavoritesService) {
                 FavoritesService favoritesService = (FavoritesService) service;
                 favoritesService.setSaveToDefaultOnFailure(AppSettingItems.FAV_SAVE_TO_DEFAULT_ON_FAILURE.getValue());
+            }
+            if (service instanceof FollowingService) {
+                FollowingService followingService = (FollowingService) service;
+                followingService.setExactSyncFollowing(AppSettingItems.EXACT_SYNC_FOLLOWING.getValue());
             }
             backupRestoreItemServices.put(item, service);
         }

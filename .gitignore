@@ -22,6 +22,7 @@ target/
 /nbproject/private/
 /nbbuild/
 /dist/
+/bilibili-backup/dist/
 /nbdist/
 /.nb-gradle/
 build/
@@ -40,6 +41,6 @@ bin/
 qr/
 
 # Release artifacts are uploaded to GitHub Releases instead of git.
-release/*.dmg
-release/bilitoolkit/*.dmg
-release/bilitoolkit/*.zip
+bilibili-backup/release/*.dmg
+bilitoolkit/release/**/*.dmg
+bilitoolkit/release/**/*.zip

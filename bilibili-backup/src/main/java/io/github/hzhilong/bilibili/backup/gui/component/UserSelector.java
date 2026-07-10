@@ -63,9 +63,16 @@ public class UserSelector extends BasePanel {
 
     private boolean resetting = false;
 
+    private final String labelText;
+
     public UserSelector(Window parent, String appIconPath, OkHttpClient client) {
+        this(parent, appIconPath, client, "当前账号：");
+    }
+
+    public UserSelector(Window parent, String appIconPath, OkHttpClient client, String labelText) {
         super(parent, appIconPath);
         this.client = client;
+        this.labelText = labelText;
         initUI();
     }
 
@@ -75,7 +82,7 @@ public class UserSelector extends BasePanel {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new GridBagLayout());
 
-        LayoutUtil.addGridBarX(contentPanel, new JLabel("当前账号："), 0);
+        LayoutUtil.addGridBarX(contentPanel, new JLabel(labelText), 0);
         this.cmbUser = new JComboBox<>();
         LayoutUtil.addGridBarX(contentPanel, cmbUser, 1);
 

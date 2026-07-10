@@ -12,6 +12,7 @@ public enum BusinessType implements IBusinessType {
 
     BACKUP("备份"),
     RESTORE("还原"),
+    SYNC("同步"),
     CLEAR("清空");
 
     /**

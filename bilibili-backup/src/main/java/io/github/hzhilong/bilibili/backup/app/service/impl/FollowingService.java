@@ -81,7 +81,7 @@ public class FollowingService extends RelationService implements NeedContext {
 
                 @Override
                 public List<RelationTag> processData(List<RelationTag> list) throws BusinessException {
-                    if (parentWindow != null && AppSettingItems.SELECT_RELATION_TAG.getValue()) {
+                    if (parentWindow != null && isInteractiveSelection() && AppSettingItems.SELECT_RELATION_TAG.getValue()) {
                         RelationTagSelectDialog dialog = new RelationTagSelectDialog(parentWindow, appIconPath, list);
                         dialog.setVisible(true);
                         list = dialog.getSelectedList();
@@ -211,7 +211,7 @@ public class FollowingService extends RelationService implements NeedContext {
 
         }
 
-        if (!oldVersion && parentWindow != null && AppSettingItems.SELECT_RELATION_TAG.getValue()) {
+        if (!oldVersion && parentWindow != null && isInteractiveSelection() && AppSettingItems.SELECT_RELATION_TAG.getValue()) {
             RelationTagSelectDialog dialog = new RelationTagSelectDialog(parentWindow, appIconPath, oldTags);
             dialog.setVisible(true);
             oldTags = dialog.getSelectedList();
@@ -250,9 +250,12 @@ public class FollowingService extends RelationService implements NeedContext {
 
 
         }
-        if (oldFollowingCount < 1) {
+        if (oldFollowingCount < 1 && !exactSyncFollowing) {
             log.info("关注为空，无需还原");
             return null;
+        }
+        if (oldFollowingCount < 1) {
+            log.info("基准账号关注为空，将取关目标账号的全部关注");
         }
 
         int page = getSegmentPageNo();

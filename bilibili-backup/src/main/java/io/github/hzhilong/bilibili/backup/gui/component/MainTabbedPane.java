@@ -7,6 +7,7 @@ import io.github.hzhilong.bilibili.backup.gui.page.CancelledAccountPage;
 import io.github.hzhilong.bilibili.backup.gui.page.ClearPage;
 import io.github.hzhilong.bilibili.backup.gui.page.PagePanel;
 import io.github.hzhilong.bilibili.backup.gui.page.RestorePage;
+import io.github.hzhilong.bilibili.backup.gui.page.SyncAccountPage;
 import io.github.hzhilong.bilibili.backup.gui.page.ToolsPage;
 import okhttp3.OkHttpClient;
 
@@ -33,6 +34,7 @@ public class MainTabbedPane extends JTabbedPane {
         String appIcon = AppConstant.APP_ICON;
         addView("备份", new BackupPage(frame, appIcon, client));
         addView("还原", new RestorePage(frame, appIcon, client));
+        addView("同步账号", new SyncAccountPage(frame, appIcon, client));
         addView("清空", new ClearPage(frame, appIcon, client));
         addView("已注销账号数据", new CancelledAccountPage(frame, appIcon, client));
         addView("其他工具", new ToolsPage(frame, appIcon, client));

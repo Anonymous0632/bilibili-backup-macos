@@ -5,7 +5,7 @@ DMG files are not committed to git. They are generated locally and uploaded to G
 Generate a fresh DMG with:
 
 ```bash
-./script/package_dmg.sh
+./bilibili-backup/script/package_dmg.sh
 ```
 
 BiliToolkit release assets are generated from the integrated Electron project:

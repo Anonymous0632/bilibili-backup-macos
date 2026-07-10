@@ -42,6 +42,19 @@ public abstract class BackupRestoreService<T> extends BaseService implements Bac
     private final HashMap<String, String> mapFileName;
 
     /**
+     * 账号同步时使用的临时数据，只保存在内存中。
+     */
+    @Setter
+    private Map<String, String> inMemoryBackupData;
+
+    /**
+     * 是否允许弹出分组、收藏夹等局部数据选择框。
+     */
+    @Setter
+    @Getter
+    private boolean interactiveSelection;
+
+    /**
      * 还原时忽略新账号现有的数据，直接还原
      */
     @Setter
@@ -61,6 +74,7 @@ public abstract class BackupRestoreService<T> extends BaseService implements Bac
         this.mapFileName = new HashMap<>(2);
         this.directRestore = false;
         this.allowFailure = false;
+        this.interactiveSelection = true;
         this.initFileName(mapFileName);
     }
 
@@ -91,10 +105,21 @@ public abstract class BackupRestoreService<T> extends BaseService implements Bac
             } catch (Exception ignored) {
             }
         }
-        FileUtil.writeJsonFile(path + getEnFilePathName(appendDir), getEnFileName(name) + ".json", content);
+        if (inMemoryBackupData != null) {
+            inMemoryBackupData.put(getInMemoryDataKey(appendDir, name), JSONObject.toJSONString(content));
+        } else {
+            FileUtil.writeJsonFile(path + getEnFilePathName(appendDir), getEnFileName(name) + ".json", content);
+        }
     }
 
     public String readJsonFile(String path, String appendDir, String name) throws BusinessException {
+        if (inMemoryBackupData != null) {
+            String content = inMemoryBackupData.get(getInMemoryDataKey(appendDir, name));
+            if (content == null) {
+                throw new BusinessException(String.format("[%s]同步数据为空", name));
+            }
+            return content;
+        }
         try {
             // 兼容旧版本数据 中 + 中
             return FileUtil.readJsonFile(path + appendDir + File.separator, name + ".json");
@@ -106,6 +131,10 @@ public abstract class BackupRestoreService<T> extends BaseService implements Bac
                 throw new BusinessException(String.format("[%s]备份文件为空", name));
             }
         }
+    }
+
+    private String getInMemoryDataKey(String appendDir, String name) {
+        return String.valueOf(appendDir) + '\u0000' + name;
     }
 
     public interface BackupCallback<DB> {

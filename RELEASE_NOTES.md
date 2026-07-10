@@ -18,7 +18,7 @@ This release adds stricter following-list management and recovery behavior to th
 
 - Built on macOS 27.0 / arm64 with OpenJDK 21 and Maven.
 - Ran `mvn -DskipTests compile`.
-- Ran `./script/build_and_run.sh --verify`.
+- Ran `./bilibili-backup/script/build_and_run.sh --verify`.
 - Verified the installed `.app` with `codesign --verify --deep --strict`.
 - Verified the DMG checksum with `hdiutil verify`.
 

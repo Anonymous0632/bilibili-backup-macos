@@ -140,7 +140,7 @@ public class FavoritesService extends BackupRestoreService<FavFolder> implements
 
                     @Override
                     public List<FavFolder> processData(List<FavFolder> list) throws BusinessException {
-                        if (parentWindow != null && AppSettingItems.SELECT_FAV.getValue()) {
+                        if (parentWindow != null && isInteractiveSelection() && AppSettingItems.SELECT_FAV.getValue()) {
                             FavFolderSelectDialog dialog = new FavFolderSelectDialog(parentWindow, appIconPath, list);
                             dialog.setVisible(true);
                             list = dialog.getSelectedList();
@@ -261,7 +261,7 @@ public class FavoritesService extends BackupRestoreService<FavFolder> implements
 
         List<FavFolder> oldFolders = JSONObject.parseArray(readJsonFile(path, "收藏夹", "创建的收藏夹"), FavFolder.class);
 
-        if (parentWindow != null && AppSettingItems.SELECT_FAV.getValue()) {
+        if (parentWindow != null && isInteractiveSelection() && AppSettingItems.SELECT_FAV.getValue()) {
             FavFolderSelectDialog dialog = new FavFolderSelectDialog(parentWindow, appIconPath, oldFolders);
             dialog.setVisible(true);
             oldFolders = dialog.getSelectedList();
